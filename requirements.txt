@@ -1,0 +1,12 @@
+datasets
+ipykernel
+jupyter
+librosa
+matplotlib
+numpy
+pandas
+scikit-learn
+scipy
+soundfile
+torch
+tqdm

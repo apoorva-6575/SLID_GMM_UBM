@@ -10,9 +10,25 @@ __pycache__/
 .ipynb_checkpoints/
 
 dataset/
-features/
-models/
-results/
+hf_cache/
+
+data/*/audio/*
+!data/*/audio/.gitkeep
+
+features/*
+!features/.gitkeep
+
+models/*
+!models/.gitkeep
+!models/gmm_models/
+!models/gmm_models/.gitkeep
+
+results/*
+!results/.gitkeep
+!results/plots/
+!results/plots/.gitkeep
+!results/logs/
+!results/logs/.gitkeep
 
 *.wav
 *.mp3
@@ -21,6 +37,10 @@ results/
 *.npz
 *.pkl
 *.joblib
+*.pt
+*.pth
+*.h5
+kaggle.json
 
 .DS_Store
 Thumbs.db
