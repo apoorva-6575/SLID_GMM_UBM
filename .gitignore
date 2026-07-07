@@ -29,6 +29,12 @@ results/*
 !results/plots/.gitkeep
 !results/logs/
 !results/logs/.gitkeep
+!results/metrics/
+!results/metrics/.gitkeep
+!results/confusion_matrix/
+!results/confusion_matrix/.gitkeep
+!results/embeddings/
+!results/embeddings/.gitkeep
 
 *.wav
 *.mp3
