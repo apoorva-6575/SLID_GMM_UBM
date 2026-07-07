@@ -19,6 +19,9 @@ Speaker IDs are used only to create speaker-independent train, validation, and t
 ```text
 SLID_GMM_UBM/
 +-- data/
+|   +-- train_metadata.csv
+|   +-- valid_metadata.csv
+|   +-- test_metadata.csv
 |   +-- train/
 |   |   +-- audio/
 |   |   +-- metadata.csv
@@ -30,7 +33,9 @@ SLID_GMM_UBM/
 |   |   +-- metadata.csv
 |   +-- README.md
 +-- notebooks/
+|   +-- dataset_exploration.ipynb
 |   +-- Dataset_Preparation.ipynb
++-- docs/
 +-- src/
 |   +-- audio_loader.py
 |   +-- preprocessing.py
@@ -70,6 +75,9 @@ data/test/audio/
 Small metadata CSV files can be tracked:
 
 ```text
+data/train_metadata.csv
+data/valid_metadata.csv
+data/test_metadata.csv
 data/train/metadata.csv
 data/valid/metadata.csv
 data/test/metadata.csv
@@ -86,5 +94,6 @@ pip install -r requirements.txt
 ## Notes
 
 - `features/`, `models/`, and `results/` are local output folders.
+- Audio ZIP archives should stay local and are ignored by Git.
 - Model files such as `.pkl`, `.pt`, and `.pth` are ignored by Git.
 - Kaggle credentials such as `kaggle.json` must never be committed.

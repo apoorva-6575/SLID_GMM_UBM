@@ -46,6 +46,11 @@ results/*
 *.pt
 *.pth
 *.h5
+*.zip
+*.tar
+*.tar.gz
+*.7z
+*.rar
 kaggle.json
 
 .DS_Store
