@@ -1,0 +1,56 @@
+# ============================================================
+# SLID_GMM_UBM — Experiment Configuration
+# ============================================================
+# Central configuration for all pipeline parameters.
+# Source files currently use these as default arguments.
+# When train.py is implemented, it should load this file
+# and pass values explicitly to each module.
+# ============================================================
+
+# --- Audio Loading ---
+audio:
+  sample_rate: 16000
+  mono: true
+
+# --- Framing & Windowing ---
+framing:
+  frame_length: 400        # 25 ms at 16 kHz
+  hop_length: 160           # 10 ms at 16 kHz
+  window: hamming
+
+# --- MFCC Feature Extraction ---
+mfcc:
+  n_mfcc: 13
+  n_fft: 400
+  hop_length: 160
+  include_deltas: true      # append delta + delta-delta
+
+# --- Universal Background Model ---
+ubm:
+  n_components: 64
+  covariance_type: diag
+  max_iter: 100
+
+# --- Language-Specific GMM ---
+gmm:
+  n_components: 32
+  covariance_type: diag
+  max_iter: 100
+
+# --- ANN Classifier ---
+ann:
+  hidden_dims: [256, 128]
+  dropout: 0.2
+  learning_rate: 0.001
+  batch_size: 64
+  epochs: 50
+
+# --- Experiment ---
+experiment:
+  random_seed: 42
+  languages:
+    - hindi
+    - bengali
+    - nepali
+    - punjabi
+    - urdu

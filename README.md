@@ -14,11 +14,18 @@ This project is for language identification, not speaker identification.
 
 Speaker IDs are used only to create speaker-independent train, validation, and test splits. This prevents the model from learning speaker-specific traits instead of language characteristics, making evaluation more meaningful.
 
+## Pipeline
+
+```text
+Audio → Preprocessing → Framing → MFCC Extraction → UBM → GMM → ANN → Evaluation
+```
+
 ## Project Structure
 
 ```text
 SLID_GMM_UBM/
 ├── src/
+│   ├── __init__.py               # Package marker
 │   ├── preprocessing.py          # Audio loading, normalization, resampling
 │   ├── framing.py                # Framing and windowing
 │   ├── mfcc.py                   # MFCC and delta extraction
@@ -30,11 +37,12 @@ SLID_GMM_UBM/
 │   ├── evaluate.py               # Evaluation metrics
 │   └── utils.py                  # General utilities
 │
+├── configs/
+│   └── config.yaml               # All hyperparameters and experiment settings
+│
 ├── notebooks/
 │   ├── dataset_exploration.ipynb
 │   └── dataset_preparation.ipynb
-│
-├── configs/                      # Hyperparameters and experiment configs
 │
 ├── data/                         # Metadata CSVs (audio provided via Kaggle)
 │   ├── train/
@@ -83,6 +91,10 @@ data/train/metadata.csv
 data/valid/metadata.csv
 data/test/metadata.csv
 ```
+
+## Configuration
+
+All hyperparameters are defined in `configs/config.yaml`. This includes audio settings, MFCC parameters, GMM/UBM components, ANN architecture, and experiment metadata.
 
 ## Setup
 

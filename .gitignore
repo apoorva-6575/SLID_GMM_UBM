@@ -17,6 +17,8 @@ __pycache__/
 # Dataset caches (Hugging Face, Kaggle)
 dataset/
 hf_cache/
+.cache/
+.kaggle/
 
 # Audio files (provided via Kaggle, never committed)
 data/*/audio/*
@@ -49,11 +51,15 @@ results/confusion_matrix/*
 *.pt
 *.pth
 *.h5
+*.ckpt
 *.zip
 *.tar
 *.tar.gz
 *.7z
 *.rar
+
+# Logs
+*.log
 
 # Credentials
 kaggle.json

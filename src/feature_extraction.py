@@ -1,8 +1,7 @@
 """End-to-end feature extraction."""
 
-from preprocessing import load_audio
+from preprocessing import load_audio, normalize_audio
 from mfcc import append_delta_features, extract_mfcc
-from preprocessing import normalize_audio
 
 
 def extract_features_from_file(path, sample_rate=16000, n_mfcc=13):
