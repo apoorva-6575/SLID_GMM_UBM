@@ -1,41 +1,44 @@
+# Virtual environments
 venv/
 .venv/
+
+# Python bytecode
 __pycache__/
 *.py[cod]
 *$py.class
 
+# Environment variables
 .env
 .env.*
 
+# Jupyter
 .ipynb_checkpoints/
 
+# Dataset caches (Hugging Face, Kaggle)
 dataset/
 hf_cache/
 
+# Audio files (provided via Kaggle, never committed)
 data/*/audio/*
 !data/*/audio/.gitkeep
 
-features/*
-!features/.gitkeep
-
+# Model artifacts (local only)
 models/*
 !models/.gitkeep
 !models/gmm_models/
 !models/gmm_models/.gitkeep
 
-results/*
-!results/.gitkeep
-!results/plots/
-!results/plots/.gitkeep
-!results/logs/
-!results/logs/.gitkeep
-!results/metrics/
+# Results contents (keep directory structure)
+results/metrics/*
 !results/metrics/.gitkeep
-!results/confusion_matrix/
-!results/confusion_matrix/.gitkeep
-!results/embeddings/
+results/plots/*
+!results/plots/.gitkeep
+results/embeddings/*
 !results/embeddings/.gitkeep
+results/confusion_matrix/*
+!results/confusion_matrix/.gitkeep
 
+# Binary / large files
 *.wav
 *.mp3
 *.flac
@@ -51,7 +54,10 @@ results/*
 *.tar.gz
 *.7z
 *.rar
+
+# Credentials
 kaggle.json
 
+# OS artifacts
 .DS_Store
 Thumbs.db

@@ -18,53 +18,57 @@ Speaker IDs are used only to create speaker-independent train, validation, and t
 
 ```text
 SLID_GMM_UBM/
-+-- data/
-|   +-- train_metadata.csv
-|   +-- valid_metadata.csv
-|   +-- test_metadata.csv
-|   +-- train/
-|   |   +-- audio/
-|   |   +-- metadata.csv
-|   +-- valid/
-|   |   +-- audio/
-|   |   +-- metadata.csv
-|   +-- test/
-|   |   +-- audio/
-|   |   +-- metadata.csv
-|   +-- README.md
-+-- notebooks/
-|   +-- dataset_exploration.ipynb
-|   +-- Dataset_Preparation.ipynb
-+-- docs/
-+-- src/
-|   +-- audio_loader.py
-|   +-- preprocessing.py
-|   +-- framing.py
-|   +-- mfcc.py
-|   +-- feature_extraction.py
-|   +-- ubm.py
-|   +-- gmm.py
-|   +-- ann.py
-|   +-- train.py
-|   +-- evaluate.py
-|   +-- utils.py
-+-- models/
-|   +-- gmm_models/
-+-- results/
-|   +-- logs/
-|   +-- plots/
-|   +-- metrics/
-|   +-- confusion_matrix/
-|   +-- embeddings/
-+-- requirements.txt
-+-- README.md
-+-- LICENSE
-+-- .gitignore
+├── src/
+│   ├── preprocessing.py          # Audio loading, normalization, resampling
+│   ├── framing.py                # Framing and windowing
+│   ├── mfcc.py                   # MFCC and delta extraction
+│   ├── feature_extraction.py     # End-to-end feature pipeline
+│   ├── gmm.py                    # Language-specific GMM
+│   ├── ubm.py                    # Universal Background Model
+│   ├── ann.py                    # ANN classifier (SLIDNet)
+│   ├── train.py                  # Training entry point
+│   ├── evaluate.py               # Evaluation metrics
+│   └── utils.py                  # General utilities
+│
+├── notebooks/
+│   ├── dataset_exploration.ipynb
+│   └── dataset_preparation.ipynb
+│
+├── configs/                      # Hyperparameters and experiment configs
+│
+├── data/                         # Metadata CSVs (audio provided via Kaggle)
+│   ├── train/
+│   │   ├── audio/
+│   │   └── metadata.csv
+│   ├── valid/
+│   │   ├── audio/
+│   │   └── metadata.csv
+│   └── test/
+│       ├── audio/
+│       └── metadata.csv
+│
+├── models/
+│   └── gmm_models/
+│
+├── results/
+│   ├── metrics/
+│   ├── plots/
+│   ├── embeddings/
+│   └── confusion_matrix/
+│
+├── docs/
+│
+├── requirements.txt
+├── README.md
+├── LICENSE
+└── .gitignore
 ```
 
 ## Data
 
-Keep raw audio files outside Git. Place them locally under:
+The IndicVoices dataset is hosted on Kaggle. Audio files are never committed to this repository.
+
+Place audio files locally under:
 
 ```text
 data/train/audio/
@@ -72,18 +76,13 @@ data/valid/audio/
 data/test/audio/
 ```
 
-Small metadata CSV files can be tracked:
+Small metadata CSV files are tracked in Git:
 
 ```text
-data/train_metadata.csv
-data/valid_metadata.csv
-data/test_metadata.csv
 data/train/metadata.csv
 data/valid/metadata.csv
 data/test/metadata.csv
 ```
-
-The old Hugging Face download/cache folders `dataset/` and `hf_cache/` are ignored.
 
 ## Setup
 
@@ -93,7 +92,12 @@ pip install -r requirements.txt
 
 ## Notes
 
-- `features/`, `models/`, and `results/` are local output folders.
-- Audio ZIP archives should stay local and are ignored by Git.
-- Model files such as `.pkl`, `.pt`, and `.pth` are ignored by Git.
-- Kaggle credentials such as `kaggle.json` must never be committed.
+- `models/` and `results/` are local output folders. Their contents are ignored by Git.
+- Audio files (`.wav`, `.mp3`, `.flac`) are ignored by Git.
+- Model files (`.pkl`, `.pt`, `.pth`) are ignored by Git.
+- Kaggle credentials (`kaggle.json`) must never be committed.
+- The dataset is attached separately through Kaggle, not stored in this repository.
+
+## License
+
+MIT License. See [LICENSE](LICENSE) for details.

@@ -1,6 +1,6 @@
 """End-to-end feature extraction."""
 
-from audio_loader import load_audio
+from preprocessing import load_audio
 from mfcc import append_delta_features, extract_mfcc
 from preprocessing import normalize_audio
 
