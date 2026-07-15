@@ -21,8 +21,10 @@ framing:
 # --- MFCC Feature Extraction ---
 mfcc:
   n_mfcc: 13
-  n_fft: 400
+  n_mels: 40
+  n_fft: 512
   hop_length: 160
+  win_length: 400
   include_deltas: true      # append delta + delta-delta
 
 # --- Universal Background Model ---

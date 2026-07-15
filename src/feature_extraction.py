@@ -1,12 +1,43 @@
-"""End-to-end feature extraction."""
+"""
+Complete Feature Extraction Pipeline
 
-from preprocessing import load_audio, normalize_audio
-from mfcc import append_delta_features, extract_mfcc
+Audio file → Preprocessing → MFCC + Delta + Delta-Delta → Feature matrix
+
+Note:
+    framing.py contains a manual framing implementation for educational
+    purposes. However, librosa.feature.mfcc() performs its own internal
+    framing and windowing, so we call extract_features() directly on the
+    preprocessed signal.
+"""
+
+from pathlib import Path
+
+from preprocessing import preprocess_audio
+from mfcc import extract_features
 
 
-def extract_features_from_file(path, sample_rate=16000, n_mfcc=13):
-    """Load audio and extract MFCC plus delta features."""
-    signal, sr = load_audio(path, sample_rate=sample_rate)
-    signal = normalize_audio(signal)
-    mfcc_features = extract_mfcc(signal, sample_rate=sr, n_mfcc=n_mfcc)
-    return append_delta_features(mfcc_features)
+def extract_features_from_file(audio_path):
+    """
+    Complete pipeline for one audio file.
+
+    Parameters
+    ----------
+    audio_path : str or Path
+
+    Returns
+    -------
+    np.ndarray
+        Shape:
+        (num_frames, 39)
+    """
+
+    audio_path = Path(audio_path)
+
+    signal, sample_rate = preprocess_audio(audio_path)
+
+    features = extract_features(
+        signal,
+        sample_rate
+    )
+
+    return features
