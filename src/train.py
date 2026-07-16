@@ -11,6 +11,8 @@ import warnings
 import numpy as np
 import torch
 from torch.utils.data import TensorDataset, DataLoader
+from sklearn.preprocessing import StandardScaler
+import joblib
 
 # Import pipeline modules
 from utils import load_config, get_language_mapping, parse_metadata
@@ -119,6 +121,16 @@ def main():
         # Concatenate all training frames
         train_features_concat = np.vstack(X_train_list)
         
+        # Subsample frames to prevent out-of-memory errors.
+        # 2 million frames is more than enough for a statistically
+        # representative UBM — this is standard practice in SLID.
+        MAX_UBM_FRAMES = 2_000_000
+        if train_features_concat.shape[0] > MAX_UBM_FRAMES:
+            print(f"Subsampling from {train_features_concat.shape[0]:,} to {MAX_UBM_FRAMES:,} frames...")
+            rng = np.random.RandomState(42)
+            indices = rng.choice(train_features_concat.shape[0], MAX_UBM_FRAMES, replace=False)
+            train_features_concat = train_features_concat[indices]
+        
         ubm = UBM(
             n_components=config['ubm']['n_components'],
             max_iter=config['ubm']['max_iter']
@@ -188,6 +200,12 @@ def main():
 
     print("Generating GMM score vectors for Train set...")
     X_train_scores = generate_score_vectors(X_train_list, language_gmms, valid_langs)
+    
+    # Normalize the score vectors (log-likelihoods) to prevent Dead ReLU in PyTorch
+    scaler = StandardScaler()
+    X_train_scores = scaler.fit_transform(X_train_scores)
+    joblib.dump(scaler, model_dir / "ann_scaler.pkl")
+    
     y_train_idx = np.array([name_to_label[l] for l in y_train_str])
     
     # Convert to PyTorch Tensors
@@ -220,6 +238,10 @@ def main():
     # ---------------------------------------------------------
     print("\nGenerating GMM score vectors for Test set...")
     X_test_scores = generate_score_vectors(X_test_list, language_gmms, valid_langs)
+    
+    # Normalize using the saved scaler
+    X_test_scores = scaler.transform(X_test_scores)
+    
     y_test_idx = np.array([name_to_label[l] for l in y_test_str])
     
     X_test_tensor = torch.FloatTensor(X_test_scores)
