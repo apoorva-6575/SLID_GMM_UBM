@@ -45,7 +45,7 @@ ann:
   dropout: 0.2
   learning_rate: 0.001
   batch_size: 64
-  epochs: 50
+  epochs: 200
 
 # --- Experiment ---
 experiment:
