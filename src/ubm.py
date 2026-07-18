@@ -9,6 +9,7 @@ from all available languages and speakers.
 from pathlib import Path
 
 import joblib
+import numpy as np
 from sklearn.mixture import GaussianMixture
 
 
@@ -86,3 +87,47 @@ class UBM:
         instance.gmm = joblib.load(path)
         instance.is_trained = True
         return instance
+
+    def extract_supervector(self, features, relevance_factor=16.0):
+        """
+        Extracts a GMM-UBM supervector using MAP mean adaptation.
+        
+        Parameters
+        ----------
+        features : np.ndarray
+            Matrix of MFCC features for a single utterance. Shape: (num_frames, num_features)
+        relevance_factor : float
+            Controls how much to trust the new data vs the UBM prior. Standard value is 16.
+            
+        Returns
+        -------
+        np.ndarray
+            Flattened supervector of shape (n_components * num_features,)
+        """
+        if not self.is_trained:
+            raise RuntimeError("Cannot extract supervector from untrained UBM.")
+            
+        # 1. Compute posterior probabilities (responsibilities)
+        # predict_proba returns shape (num_frames, n_components)
+        responsibilities = self.gmm.predict_proba(features)
+        
+        # 2. Compute zero-order statistics (N_k) for each component
+        # sum over frames: shape (n_components,)
+        n_k = np.sum(responsibilities, axis=0)
+        
+        # 3. Compute first-order statistics (E_k) for each component
+        # shape (n_components, num_features)
+        # Avoid division by zero by adding a small epsilon
+        e_k = np.dot(responsibilities.T, features) / (n_k[:, np.newaxis] + 1e-10)
+        
+        # 4. Compute adaptation coefficient (alpha_k)
+        alpha_k = n_k / (n_k + relevance_factor)
+        alpha_k = alpha_k[:, np.newaxis] # Reshape for broadcasting: (n_components, 1)
+        
+        # 5. MAP Mean Adaptation
+        ubm_means = self.gmm.means_
+        adapted_means = alpha_k * e_k + (1 - alpha_k) * ubm_means
+        
+        # 6. Flatten to create the supervector
+        supervector = adapted_means.flatten()
+        return supervector

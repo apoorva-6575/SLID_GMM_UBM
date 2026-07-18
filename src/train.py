@@ -1,6 +1,6 @@
 """
 Master Orchestration Script.
-Executes the entire SLID pipeline from raw audio to final evaluation.
+Executes the entire SLID pipeline using the GMM-UBM Supervector architecture.
 """
 
 import os
@@ -18,7 +18,6 @@ import joblib
 from utils import load_config, get_language_mapping, parse_metadata
 from feature_extraction import extract_features_from_file
 from ubm import UBM
-from gmm import LanguageGMM
 from ann import LanguageANN, train_ann, save_ann
 from evaluate import evaluate_model
 
@@ -77,7 +76,7 @@ def extract_and_cache_features(split, metadata, data_dir):
 
 def main():
     print("=" * 60)
-    print("SLID GMM-UBM PIPELINE INITIALIZATION")
+    print("SLID GMM-UBM SUPERVECTOR PIPELINE INITIALIZATION")
     print("=" * 60)
     
     config = load_config()
@@ -85,6 +84,7 @@ def main():
     
     data_dir = "d:\\SLID_GMM_UBM\\data"
     model_dir = Path("d:\\SLID_GMM_UBM\\models")
+    model_dir.mkdir(exist_ok=True)
     
     # ---------------------------------------------------------
     # 1. METADATA PARSING
@@ -112,7 +112,10 @@ def main():
     print("PHASE 5: UNIVERSAL BACKGROUND MODEL")
     print("=" * 60)
     
-    ubm_path = model_dir / "gmm_models" / "ubm.pkl"
+    ubm_dir = model_dir / "gmm_models"
+    ubm_dir.mkdir(exist_ok=True)
+    ubm_path = ubm_dir / "ubm.pkl"
+    
     if ubm_path.exists():
         print("UBM already exists. Loading from disk...")
         ubm = UBM.load(ubm_path)
@@ -121,9 +124,6 @@ def main():
         # Concatenate all training frames
         train_features_concat = np.vstack(X_train_list)
         
-        # Subsample frames to prevent out-of-memory errors.
-        # 2 million frames is more than enough for a statistically
-        # representative UBM — this is standard practice in SLID.
         MAX_UBM_FRAMES = 2_000_000
         if train_features_concat.shape[0] > MAX_UBM_FRAMES:
             print(f"Subsampling from {train_features_concat.shape[0]:,} to {MAX_UBM_FRAMES:,} frames...")
@@ -142,74 +142,41 @@ def main():
         del train_features_concat
 
     # ---------------------------------------------------------
-    # 4. PHASE 6: LANGUAGE GMM ADAPTATION
+    # 4. PHASE 6: SUPERVECTOR EXTRACTION
     # ---------------------------------------------------------
     print("\n" + "=" * 60)
-    print("PHASE 6: LANGUAGE GMM ADAPTATION")
+    print("PHASE 6: SUPERVECTOR EXTRACTION")
     print("=" * 60)
     
-    language_gmms = {}
-    
-    for lang in valid_langs:
-        gmm_path = model_dir / "gmm_models" / f"{lang}_gmm.pkl"
-        
-        if gmm_path.exists():
-            print(f"Loading {lang.capitalize()} GMM from disk...")
-            language_gmms[lang] = LanguageGMM.load(gmm_path, lang)
-        else:
-            print(f"Adapting {lang.capitalize()} GMM...")
-            # Get features ONLY for this language
-            lang_features = [X_train_list[i] for i in range(len(X_train_list)) if y_train_str[i] == lang]
-            
-            if not lang_features:
-                print(f"WARNING: No training data found for {lang}. Skipping.")
-                continue
-                
-            lang_concat = np.vstack(lang_features)
-            
-            gmm = LanguageGMM(language_name=lang, ubm=ubm, max_iter=config['gmm']['max_iter'])
-            gmm.train(lang_concat)
-            gmm.save(model_dir / "gmm_models")
-            language_gmms[lang] = gmm
-            
-            del lang_concat
+    def extract_supervectors_for_dataset(feature_list, ubm_model):
+        """Extracts a MAP-adapted supervector for each utterance."""
+        supervectors = []
+        for i, features in enumerate(feature_list):
+            sv = ubm_model.extract_supervector(features)
+            supervectors.append(sv)
+            if (i + 1) % 5000 == 0:
+                print(f"Extracted {i + 1} supervectors...")
+        return np.array(supervectors)
 
+    print("Extracting Supervectors for Train set...")
+    X_train_sv = extract_supervectors_for_dataset(X_train_list, ubm)
+    
+    # Normalize the supervectors
+    scaler = StandardScaler()
+    X_train_sv = scaler.fit_transform(X_train_sv)
+    joblib.dump(scaler, model_dir / "ann_scaler.pkl")
+    
+    y_train_idx = np.array([name_to_label[l] for l in y_train_str])
+    
     # ---------------------------------------------------------
-    # 5. PHASE 7: ANN SCORE GENERATION & TRAINING
+    # 5. PHASE 7: ANN CLASSIFIER
     # ---------------------------------------------------------
     print("\n" + "=" * 60)
     print("PHASE 7: ANN CLASSIFIER")
     print("=" * 60)
     
-    def generate_score_vectors(feature_list, language_gmms, valid_langs):
-        """Scores each utterance against all GMMs to create the 5-D ANN input."""
-        score_matrix = []
-        ordered_langs = [label_to_name[i] for i in range(len(label_to_name))]
-        
-        for features in feature_list:
-            scores = []
-            for lang in ordered_langs:
-                if lang in language_gmms:
-                    # score() returns average log-likelihood per frame
-                    scores.append(language_gmms[lang].score(features))
-                else:
-                    scores.append(-9999.0) # Penalty for missing language model
-            score_matrix.append(scores)
-            
-        return np.array(score_matrix)
-
-    print("Generating GMM score vectors for Train set...")
-    X_train_scores = generate_score_vectors(X_train_list, language_gmms, valid_langs)
-    
-    # Normalize the score vectors (log-likelihoods) to prevent Dead ReLU in PyTorch
-    scaler = StandardScaler()
-    X_train_scores = scaler.fit_transform(X_train_scores)
-    joblib.dump(scaler, model_dir / "ann_scaler.pkl")
-    
-    y_train_idx = np.array([name_to_label[l] for l in y_train_str])
-    
     # Convert to PyTorch Tensors
-    X_train_tensor = torch.FloatTensor(X_train_scores)
+    X_train_tensor = torch.FloatTensor(X_train_sv)
     y_train_tensor = torch.LongTensor(y_train_idx)
     
     train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
@@ -217,8 +184,11 @@ def main():
     
     ann_path = model_dir / "ann_model.pt"
     
+    supervector_dim = X_train_sv.shape[1]
+    print(f"Supervector Dimension: {supervector_dim}")
+    
     ann_model = LanguageANN(
-        input_dim=len(valid_langs),
+        input_dim=supervector_dim,
         num_classes=len(valid_langs),
         hidden_dims=config['ann']['hidden_dims'],
         dropout=config['ann']['dropout']
@@ -236,15 +206,19 @@ def main():
     # ---------------------------------------------------------
     # 6. PHASE 8: EVALUATION
     # ---------------------------------------------------------
-    print("\nGenerating GMM score vectors for Test set...")
-    X_test_scores = generate_score_vectors(X_test_list, language_gmms, valid_langs)
+    print("\n" + "=" * 60)
+    print("PHASE 8: EVALUATION")
+    print("=" * 60)
+    
+    print("Extracting Supervectors for Test set...")
+    X_test_sv = extract_supervectors_for_dataset(X_test_list, ubm)
     
     # Normalize using the saved scaler
-    X_test_scores = scaler.transform(X_test_scores)
+    X_test_sv = scaler.transform(X_test_sv)
     
     y_test_idx = np.array([name_to_label[l] for l in y_test_str])
     
-    X_test_tensor = torch.FloatTensor(X_test_scores)
+    X_test_tensor = torch.FloatTensor(X_test_sv)
     
     print("Running inference on Test set...")
     ann_model.eval() # Set to eval mode (disables dropout)

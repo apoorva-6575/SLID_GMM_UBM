@@ -2,7 +2,7 @@
 Inference Script.
 
 This script takes a raw audio file as input, processes it through the entire
-pipeline (MFCC -> UBM -> GMM -> StandardScaler -> ANN), and outputs the predicted language.
+pipeline (MFCC -> UBM Supervector -> StandardScaler -> ANN), and outputs the predicted language.
 
 Usage:
     python src/predict.py path/to/audio.wav
@@ -20,7 +20,6 @@ import joblib
 from utils import load_config, get_language_mapping
 from feature_extraction import extract_features_from_file
 from ubm import UBM
-from gmm import LanguageGMM
 from ann import LanguageANN, load_ann
 
 # Ensure PyTorch doesn't crash on Windows
@@ -51,51 +50,38 @@ def predict_language(audio_path):
         sys.exit(1)
         
     # 3. Load Models
-    print("Loading models (UBM, GMMs, Scaler, ANN)...")
+    print("Loading models (UBM, Scaler, ANN)...")
     
     # Load UBM
     ubm_path = model_dir / "gmm_models" / "ubm.pkl"
     ubm = UBM.load(ubm_path)
     
-    # Load GMMs
-    language_gmms = {}
-    for lang in valid_langs:
-        gmm_path = model_dir / "gmm_models" / f"{lang}_gmm.pkl"
-        language_gmms[lang] = LanguageGMM.load(gmm_path, lang)
-        
     # Load Scaler
     scaler_path = model_dir / "ann_scaler.pkl"
     scaler = joblib.load(scaler_path)
     
-    # Load PyTorch ANN
+    # 4. Generate Supervector
+    print("Extracting Supervector...")
+    supervector = ubm.extract_supervector(features)
+    
+    # Load PyTorch ANN dynamically based on supervector shape
     ann_path = model_dir / "ann_model.pt"
     ann_model = LanguageANN(
-        input_dim=len(valid_langs),
+        input_dim=supervector.shape[0],
         num_classes=len(valid_langs),
         hidden_dims=config['ann']['hidden_dims'],
         dropout=config['ann']['dropout']
     )
     ann_model = load_ann(ann_model, ann_path)
     
-    # 4. Generate GMM Scores
-    print("Scoring against language GMMs...")
-    scores = []
-    ordered_langs = [label_to_name[i] for i in range(len(label_to_name))]
-    
-    for lang in ordered_langs:
-        if lang in language_gmms:
-            scores.append(language_gmms[lang].score(features))
-        else:
-            scores.append(-9999.0)
-            
     # Reshape for scalar/model (1 sample, N features)
-    score_vector = np.array([scores])
+    sv_matrix = np.array([supervector])
     
     # 5. Normalize Scores
-    normalized_scores = scaler.transform(score_vector)
+    normalized_sv = scaler.transform(sv_matrix)
     
     # 6. ANN Prediction
-    score_tensor = torch.FloatTensor(normalized_scores)
+    score_tensor = torch.FloatTensor(normalized_sv)
     
     with torch.no_grad():
         logits = ann_model(score_tensor)
@@ -109,6 +95,7 @@ def predict_language(audio_path):
     print(f"PREDICTED LANGUAGE: {predicted_lang.upper()}")
     print("=" * 40)
     print("Confidence Scores:")
+    ordered_langs = [label_to_name[i] for i in range(len(label_to_name))]
     for i, lang in enumerate(ordered_langs):
         print(f"  - {lang.capitalize():<10} : {probabilities[i]*100:>6.2f}%")
     print("=" * 40)

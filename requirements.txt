@@ -7,3 +7,5 @@ scipy
 soundfile
 torch
 tqdm
+pyyaml
+sounddevice
