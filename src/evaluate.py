@@ -56,3 +56,33 @@ def evaluate_model(y_true, y_pred, label_to_name):
         
     print("\nNote: Rows represent the TRUE language, Columns represent the PREDICTED language.")
     print("=" * 50)
+    
+    # Save the results to file system
+    import os
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    
+    metrics_dir = "d:\\SLID_GMM_UBM\\results\\metrics"
+    cm_dir = "d:\\SLID_GMM_UBM\\results\\confusion_matrix"
+    os.makedirs(metrics_dir, exist_ok=True)
+    os.makedirs(cm_dir, exist_ok=True)
+    
+    # Save classification report and accuracy
+    metrics_path = os.path.join(metrics_dir, "classification_report.txt")
+    with open(metrics_path, "w") as f:
+        f.write(f"Overall Accuracy: {acc * 100:.2f}%\n\n")
+        f.write("Classification Report:\n")
+        f.write(classification_report(y_true, y_pred, labels=labels, target_names=target_names, zero_division=0))
+    print(f"Saved classification metrics to {metrics_path}")
+        
+    # Save confusion matrix plot
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=target_names, yticklabels=target_names)
+    plt.ylabel('True Language')
+    plt.xlabel('Predicted Language')
+    plt.title('Language Identification Confusion Matrix')
+    cm_path = os.path.join(cm_dir, "confusion_matrix.png")
+    plt.savefig(cm_path)
+    plt.close()
+    print(f"Saved confusion matrix plot to {cm_path}")
+

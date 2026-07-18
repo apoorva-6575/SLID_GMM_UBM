@@ -33,12 +33,15 @@ models/*
 # Results contents (keep directory structure)
 results/metrics/*
 !results/metrics/.gitkeep
+!results/metrics/*.txt
 results/plots/*
 !results/plots/.gitkeep
+!results/plots/*.png
 results/embeddings/*
 !results/embeddings/.gitkeep
 results/confusion_matrix/*
 !results/confusion_matrix/.gitkeep
+!results/confusion_matrix/*.png
 
 # Binary / large files
 *.wav
