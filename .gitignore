@@ -25,10 +25,13 @@ data/*/audio/*
 !data/*/audio/.gitkeep
 
 # Model artifacts (local only)
-models/*
-!models/.gitkeep
-!models/gmm_models/
-!models/gmm_models/.gitkeep
+# (Models are small enough to be tracked in this repository)
+!models/
+!models/*
+!models/gmm_models/*
+!models/*.pt
+!models/*.pkl
+!models/gmm_models/*.pkl
 
 # Results contents (keep directory structure)
 results/metrics/*
