@@ -35,7 +35,7 @@ def extract_and_cache_features(split, metadata, data_dir):
     
     Returns a list of feature matrices and a list of labels.
     """
-    feature_dir = Path(data_dir) / "features" / split
+    feature_dir = Path(data_dir) / "features_v2" / split
     feature_dir.mkdir(parents=True, exist_ok=True)
     
     audio_dir = Path(data_dir) / split / "audio"
@@ -114,7 +114,7 @@ def main():
     
     ubm_dir = model_dir / "gmm_models"
     ubm_dir.mkdir(exist_ok=True)
-    ubm_path = ubm_dir / "ubm.pkl"
+    ubm_path = ubm_dir / "ubm_64_v2.pkl"
     
     if ubm_path.exists():
         print("UBM already exists. Loading from disk...")
@@ -124,7 +124,7 @@ def main():
         # Concatenate all training frames
         train_features_concat = np.vstack(X_train_list)
         
-        MAX_UBM_FRAMES = 2_000_000
+        MAX_UBM_FRAMES = 1_000_000
         if train_features_concat.shape[0] > MAX_UBM_FRAMES:
             print(f"Subsampling from {train_features_concat.shape[0]:,} to {MAX_UBM_FRAMES:,} frames...")
             rng = np.random.RandomState(42)
@@ -142,11 +142,19 @@ def main():
         del train_features_concat
 
     # ---------------------------------------------------------
-    # 4. PHASE 6: SUPERVECTOR EXTRACTION
+    # 4. PHASE 6: SUPERVECTOR EXTRACTION (with caching)
     # ---------------------------------------------------------
     print("\n" + "=" * 60)
     print("PHASE 6: SUPERVECTOR EXTRACTION")
     print("=" * 60)
+    
+    sv_cache_dir = model_dir / "sv_cache_64_v2"
+    sv_cache_dir.mkdir(exist_ok=True)
+    
+    train_sv_path = sv_cache_dir / "X_train_sv.npy"
+    train_labels_path = sv_cache_dir / "y_train.npy"
+    test_sv_path = sv_cache_dir / "X_test_sv.npy"
+    test_labels_path = sv_cache_dir / "y_test.npy"
     
     def extract_supervectors_for_dataset(feature_list, ubm_model):
         """Extracts a MAP-adapted supervector for each utterance."""
@@ -158,15 +166,34 @@ def main():
                 print(f"Extracted {i + 1} supervectors...")
         return np.array(supervectors)
 
-    print("Extracting Supervectors for Train set...")
-    X_train_sv = extract_supervectors_for_dataset(X_train_list, ubm)
-    
-    # Normalize the supervectors
-    scaler = StandardScaler()
-    X_train_sv = scaler.fit_transform(X_train_sv)
-    joblib.dump(scaler, model_dir / "ann_scaler.pkl")
-    
     y_train_idx = np.array([name_to_label[l] for l in y_train_str])
+    y_test_idx = np.array([name_to_label[l] for l in y_test_str])
+
+    if train_sv_path.exists() and test_sv_path.exists():
+        print("Loading cached supervectors from disk...")
+        X_train_sv = np.load(train_sv_path)
+        X_test_sv = np.load(test_sv_path)
+        scaler = joblib.load(model_dir / "ann_scaler.pkl")
+        print(f"Loaded {X_train_sv.shape[0]} train and {X_test_sv.shape[0]} test supervectors.")
+    else:
+        print("Extracting Supervectors for Train set...")
+        X_train_sv = extract_supervectors_for_dataset(X_train_list, ubm)
+        
+        # Normalize the supervectors
+        scaler = StandardScaler()
+        X_train_sv = scaler.fit_transform(X_train_sv)
+        joblib.dump(scaler, model_dir / "ann_scaler.pkl")
+        
+        print("Extracting Supervectors for Test set...")
+        X_test_sv = extract_supervectors_for_dataset(X_test_list, ubm)
+        X_test_sv = scaler.transform(X_test_sv)
+        
+        # Cache to disk
+        np.save(train_sv_path, X_train_sv)
+        np.save(train_labels_path, y_train_idx)
+        np.save(test_sv_path, X_test_sv)
+        np.save(test_labels_path, y_test_idx)
+        print("Supervectors cached to disk.")
     
     # ---------------------------------------------------------
     # 5. PHASE 7: ANN CLASSIFIER
@@ -209,14 +236,6 @@ def main():
     print("\n" + "=" * 60)
     print("PHASE 8: EVALUATION")
     print("=" * 60)
-    
-    print("Extracting Supervectors for Test set...")
-    X_test_sv = extract_supervectors_for_dataset(X_test_list, ubm)
-    
-    # Normalize using the saved scaler
-    X_test_sv = scaler.transform(X_test_sv)
-    
-    y_test_idx = np.array([name_to_label[l] for l in y_test_str])
     
     X_test_tensor = torch.FloatTensor(X_test_sv)
     

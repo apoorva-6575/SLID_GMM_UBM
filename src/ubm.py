@@ -39,6 +39,7 @@ class UBM:
             covariance_type=covariance_type,
             max_iter=max_iter,
             random_state=random_state,
+            reg_covar=1e-3,     # Increased regularization to prevent singular covariance matrices
             verbose=2,          # Print progress during training
             verbose_interval=10
         )

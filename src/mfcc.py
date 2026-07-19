@@ -131,6 +131,9 @@ def extract_features(signal, sample_rate):
         axis=1
     )
 
+    # Apply CMVN
+    features = (features - np.mean(features, axis=0)) / (np.std(features, axis=0) + 1e-8)
+
     return features
 if __name__ == "__main__":
 

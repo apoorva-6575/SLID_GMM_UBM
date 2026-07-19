@@ -24,6 +24,24 @@ hf_cache/
 data/*/audio/*
 !data/*/audio/.gitkeep
 
+# Binary / large files
+*.wav
+*.mp3
+*.flac
+*.npy
+*.npz
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.h5
+*.ckpt
+*.zip
+*.tar
+*.tar.gz
+*.7z
+*.rar
+
 # Model artifacts (local only)
 # (Models are small enough to be tracked in this repository)
 !models/
@@ -45,24 +63,6 @@ results/embeddings/*
 results/confusion_matrix/*
 !results/confusion_matrix/.gitkeep
 !results/confusion_matrix/*.png
-
-# Binary / large files
-*.wav
-*.mp3
-*.flac
-*.npy
-*.npz
-*.pkl
-*.joblib
-*.pt
-*.pth
-*.h5
-*.ckpt
-*.zip
-*.tar
-*.tar.gz
-*.7z
-*.rar
 
 # Logs
 *.log

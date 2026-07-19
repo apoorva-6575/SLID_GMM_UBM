@@ -86,7 +86,7 @@ def train_ann(model, train_loader, epochs=50, learning_rate=0.001):
         Learning rate for the Adam optimizer.
     """
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0.01)
     
     model.train()
     

@@ -41,7 +41,7 @@ gmm:
 
 # --- ANN Classifier ---
 ann:
-  hidden_dims: [256, 128]
+  hidden_dims: [128, 64]
   dropout: 0.2
   learning_rate: 0.001
   batch_size: 64
