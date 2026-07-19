@@ -44,7 +44,29 @@ def predict_language(audio_path):
     # 2. Extract Features
     print("Extracting MFCC features...")
     try:
-        features = extract_features_from_file(audio_path)
+        from preprocessing import preprocess_audio
+        from mfcc import extract_features
+        import librosa
+        import noisereduce as nr
+        
+        # Load and preprocess
+        signal, sample_rate = preprocess_audio(audio_path)
+        
+        # NOISE REDUCTION: Aggressively clean the audio to simulate dataset conditions
+        print("  (Applying spectral noise reduction to clean background noise)")
+        signal = nr.reduce_noise(y=signal, sr=sample_rate, prop_decrease=0.9)
+        
+        # ENFORCE 30 SECONDS (critical for supervector dimension/scaling matching)
+        target_len = 30 * sample_rate
+        if len(signal) < target_len:
+            repeats = int(np.ceil(target_len / len(signal)))
+            signal = np.tile(signal, repeats)[:target_len]
+            print("  (Audio was too short - repeated to match 30-second training length)")
+        elif len(signal) > target_len:
+            signal = signal[:target_len]
+            print("  (Audio was too long - trimmed to match 30-second training length)")
+            
+        features = extract_features(signal, sample_rate)
     except Exception as e:
         print(f"Failed to extract features: {e}")
         sys.exit(1)
@@ -53,7 +75,7 @@ def predict_language(audio_path):
     print("Loading models (UBM, Scaler, ANN)...")
     
     # Load UBM
-    ubm_path = model_dir / "gmm_models" / "ubm.pkl"
+    ubm_path = model_dir / "gmm_models" / "ubm_64_v2.pkl"
     ubm = UBM.load(ubm_path)
     
     # Load Scaler

@@ -86,3 +86,18 @@ def evaluate_model(y_true, y_pred, label_to_name):
     plt.close()
     print(f"Saved confusion matrix plot to {cm_path}")
 
+if __name__ == "__main__":
+    # When run directly, just print the most recently saved metrics
+    import os
+    metrics_path = "d:\\SLID_GMM_UBM\\results\\metrics\\classification_report.txt"
+    if os.path.exists(metrics_path):
+        print("\n" + "=" * 50)
+        print("LATEST EVALUATION RESULTS")
+        print("=" * 50 + "\n")
+        with open(metrics_path, "r") as f:
+            print(f.read())
+        print("=" * 50)
+        print("To view the confusion matrix, open: d:\\SLID_GMM_UBM\\results\\confusion_matrix\\confusion_matrix.png")
+    else:
+        print("No evaluation results found. Please run src/train.py first.")
+
