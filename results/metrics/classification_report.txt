@@ -1,13 +1,13 @@
-Overall Accuracy: 89.69%
+Overall Accuracy: 90.13%
 
 Classification Report:
               precision    recall  f1-score   support
 
-       hindi       0.78      0.89      0.83       197
-     bengali       0.98      0.94      0.96       216
-      nepali       0.94      0.93      0.94       224
-     punjabi       0.92      0.91      0.92       259
-        urdu       0.88      0.81      0.84       229
+       hindi       0.83      0.86      0.85       197
+     bengali       0.96      0.93      0.94       216
+      nepali       0.91      0.96      0.94       224
+     punjabi       0.94      0.90      0.92       259
+        urdu       0.87      0.86      0.86       229
 
     accuracy                           0.90      1125
    macro avg       0.90      0.90      0.90      1125
