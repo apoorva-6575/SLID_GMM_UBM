@@ -75,11 +75,11 @@ def predict_language(audio_path):
     print("Loading models (UBM, Scaler, ANN)...")
     
     # Load UBM
-    ubm_path = model_dir / "gmm_models" / "ubm_64_30s.pkl"
+    ubm_path = model_dir / "gmm_models" / "ubm_64_v2.pkl"
     ubm = UBM.load(ubm_path)
     
     # Load Scaler
-    scaler_path = model_dir / "ann_scaler_30s.pkl"
+    scaler_path = model_dir / "ann_scaler.pkl"
     scaler = joblib.load(scaler_path)
     
     # 4. Generate Supervector
@@ -87,7 +87,7 @@ def predict_language(audio_path):
     supervector = ubm.extract_supervector(features)
     
     # Load PyTorch ANN dynamically based on supervector shape
-    ann_path = model_dir / "ann_model_30s.pt"
+    ann_path = model_dir / "ann_model.pt"
     ann_model = LanguageANN(
         input_dim=supervector.shape[0],
         num_classes=len(valid_langs),

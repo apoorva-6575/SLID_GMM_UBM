@@ -8,7 +8,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 import numpy as np
 
 
-def evaluate_model(y_true, y_pred, label_to_name):
+def evaluate_model(y_true, y_pred, label_to_name, results_dir="d:\\SLID_GMM_UBM\\results_30s"):
     """
     Calculate and print evaluation metrics.
     
@@ -20,6 +20,8 @@ def evaluate_model(y_true, y_pred, label_to_name):
         Predicted integer labels.
     label_to_name : dict
         Mapping from integer label to language name.
+    results_dir : str
+        Directory to save the metrics and confusion matrix.
     """
     
     print("\n" + "=" * 50)
@@ -62,8 +64,8 @@ def evaluate_model(y_true, y_pred, label_to_name):
     import matplotlib.pyplot as plt
     import seaborn as sns
     
-    metrics_dir = "d:\\SLID_GMM_UBM\\results\\metrics"
-    cm_dir = "d:\\SLID_GMM_UBM\\results\\confusion_matrix"
+    metrics_dir = os.path.join(results_dir, "metrics")
+    cm_dir = os.path.join(results_dir, "confusion_matrix")
     os.makedirs(metrics_dir, exist_ok=True)
     os.makedirs(cm_dir, exist_ok=True)
     
@@ -88,16 +90,22 @@ def evaluate_model(y_true, y_pred, label_to_name):
 
 if __name__ == "__main__":
     # When run directly, just print the most recently saved metrics
+    import sys
     import os
-    metrics_path = "d:\\SLID_GMM_UBM\\results\\metrics\\classification_report.txt"
+    
+    results_dir = "d:\\SLID_GMM_UBM\\results_30s"
+    if len(sys.argv) > 1:
+        results_dir = sys.argv[1]
+        
+    metrics_path = os.path.join(results_dir, "metrics", "classification_report.txt")
     if os.path.exists(metrics_path):
         print("\n" + "=" * 50)
-        print("LATEST EVALUATION RESULTS")
+        print(f"LATEST EVALUATION RESULTS ({results_dir})")
         print("=" * 50 + "\n")
         with open(metrics_path, "r") as f:
             print(f.read())
         print("=" * 50)
-        print("To view the confusion matrix, open: d:\\SLID_GMM_UBM\\results\\confusion_matrix\\confusion_matrix.png")
+        print(f"To view the confusion matrix, open: {os.path.join(results_dir, 'confusion_matrix', 'confusion_matrix.png')}")
     else:
-        print("No evaluation results found. Please run src/train.py first.")
+        print(f"No evaluation results found in {results_dir}. Please run src/train.py first.")
 

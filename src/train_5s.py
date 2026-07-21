@@ -1,6 +1,6 @@
 """
-Master Orchestration Script.
-Executes the entire SLID pipeline using the GMM-UBM Supervector architecture.
+Master Orchestration Script for 5-second audio pipeline.
+Executes the SLID pipeline using the 5-second datasets.
 """
 
 import os
@@ -27,23 +27,19 @@ warnings.filterwarnings("ignore", category=UserWarning)
 # Ensure PyTorch doesn't crash due to OpenMP duplicate libs on Conda/Windows
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 
-
 def extract_and_cache_features(split, metadata, data_dir):
     """
     Extracts features for all files in the metadata and saves them to disk as .npy.
-    If the .npy file already exists, it skips extraction to save time.
-    
-    Returns a list of feature matrices and a list of labels.
     """
-    feature_dir = Path(data_dir) / "features_v2" / split
+    feature_dir = Path(data_dir) / "features_5s" / split
     feature_dir.mkdir(parents=True, exist_ok=True)
     
-    audio_dir = Path(data_dir) / split / "audio"
+    audio_dir = Path(data_dir) / split / "audio_5s"
     
     all_features = []
     all_labels = []
     
-    print(f"\n--- Feature Extraction: {split.upper()} SET ---")
+    print(f"\n--- Feature Extraction (5s): {split.upper()} SET ---")
     
     for i, row in enumerate(metadata):
         wav_name = row['filepath']
@@ -53,10 +49,8 @@ def extract_and_cache_features(split, metadata, data_dir):
         npy_path = feature_dir / wav_name.replace(".wav", ".npy")
         
         if npy_path.exists():
-            # Load from cache
             features = np.load(npy_path)
         else:
-            # Extract and save
             try:
                 features = extract_features_from_file(wav_path)
                 np.save(npy_path, features)
@@ -68,15 +62,14 @@ def extract_and_cache_features(split, metadata, data_dir):
         all_labels.append(lang)
         
         if (i + 1) % 500 == 0:
-            print(f"Processed {i + 1}/{len(metadata)} files.")
+            print(f"Processed {i + 1}/{len(metadata)} 5s files.")
             
     print(f"Loaded {len(all_features)} feature matrices for {split}.")
     return all_features, all_labels
 
-
 def main():
     print("=" * 60)
-    print("SLID GMM-UBM SUPERVECTOR PIPELINE INITIALIZATION")
+    print("SLID 5-SECOND PIPELINE INITIALIZATION")
     print("=" * 60)
     
     config = load_config()
@@ -84,27 +77,29 @@ def main():
     
     data_dir = "d:\\SLID_GMM_UBM\\data"
     model_dir = Path("d:\\SLID_GMM_UBM\\models")
+    results_dir = "d:\\SLID_GMM_UBM\\results_5s"
+    
     model_dir.mkdir(exist_ok=True)
     
     # ---------------------------------------------------------
-    # 1. METADATA PARSING
+    # 1. METADATA PARSING (5s)
     # ---------------------------------------------------------
-    def read_30s_meta(split):
-        meta_path = Path(data_dir) / split / "metadata_30s.csv"
+    print("\n1. Parsing 5s Metadata...")
+    # parse_metadata reads metadata.csv, so we will manually read metadata_5s.csv
+    import csv
+    def read_5s_meta(split):
+        meta_path = Path(data_dir) / split / "metadata_5s.csv"
         rows = []
         if meta_path.exists():
-            import csv
             with open(meta_path, 'r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
                 for r in reader:
                     rows.append(r)
         return rows
-
-    print("\n1. Parsing Metadata...")
-    train_meta = read_30s_meta('train')
-    test_meta = read_30s_meta('test')
+        
+    train_meta = read_5s_meta('train')
+    test_meta = read_5s_meta('test')
     
-    # Filter to only the languages defined in config
     valid_langs = set(name_to_label.keys())
     train_meta = [row for row in train_meta if row['language'] in valid_langs]
     test_meta = [row for row in test_meta if row['language'] in valid_langs]
@@ -112,55 +107,26 @@ def main():
     # ---------------------------------------------------------
     # 2. FEATURE EXTRACTION & CACHING
     # ---------------------------------------------------------
-    def extract_and_cache_features_30s(split, metadata, data_dir):
-        feature_dir = Path(data_dir) / "features_30s" / split
-        feature_dir.mkdir(parents=True, exist_ok=True)
-        audio_dir = Path(data_dir) / split / "audio_30s"
-        all_features = []
-        all_labels = []
-        print(f"\n--- Feature Extraction: {split.upper()} SET ---")
-        for i, row in enumerate(metadata):
-            wav_name = row['filepath']
-            lang = row['language']
-            wav_path = audio_dir / wav_name
-            npy_path = feature_dir / wav_name.replace(".wav", ".npy")
-            if npy_path.exists():
-                features = np.load(npy_path)
-            else:
-                try:
-                    features = extract_features_from_file(wav_path)
-                    np.save(npy_path, features)
-                except Exception as e:
-                    print(f"Error processing {wav_path}: {e}")
-                    continue
-            all_features.append(features)
-            all_labels.append(lang)
-            if (i + 1) % 500 == 0:
-                print(f"Processed {i + 1}/{len(metadata)} files.")
-        print(f"Loaded {len(all_features)} feature matrices for {split}.")
-        return all_features, all_labels
-
     print("\n2. Feature Extraction...")
-    X_train_list, y_train_str = extract_and_cache_features_30s('train', train_meta, data_dir)
-    X_test_list, y_test_str = extract_and_cache_features_30s('test', test_meta, data_dir)
+    X_train_list, y_train_str = extract_and_cache_features('train', train_meta, data_dir)
+    X_test_list, y_test_str = extract_and_cache_features('test', test_meta, data_dir)
     
     # ---------------------------------------------------------
-    # 3. PHASE 5: UBM TRAINING
+    # 3. PHASE 5: UBM TRAINING (5s model)
     # ---------------------------------------------------------
     print("\n" + "=" * 60)
-    print("PHASE 5: UNIVERSAL BACKGROUND MODEL")
+    print("PHASE 5: UNIVERSAL BACKGROUND MODEL (5s)")
     print("=" * 60)
     
     ubm_dir = model_dir / "gmm_models"
     ubm_dir.mkdir(exist_ok=True)
-    ubm_path = ubm_dir / "ubm_64_30s.pkl"
+    ubm_path = ubm_dir / "ubm_64_5s.pkl"
     
     if ubm_path.exists():
-        print("UBM already exists. Loading from disk...")
+        print("UBM 5s already exists. Loading from disk...")
         ubm = UBM.load(ubm_path)
     else:
-        print("Training UBM from scratch...")
-        # Concatenate all training frames
+        print("Training UBM 5s from scratch...")
         train_features_concat = np.vstack(X_train_list)
         
         MAX_UBM_FRAMES = 1_000_000
@@ -176,27 +142,24 @@ def main():
         )
         ubm.train(train_features_concat)
         ubm.save(ubm_path)
-        
-        # Free up memory
         del train_features_concat
 
     # ---------------------------------------------------------
-    # 4. PHASE 6: SUPERVECTOR EXTRACTION (with caching)
+    # 4. PHASE 6: SUPERVECTOR EXTRACTION (5s)
     # ---------------------------------------------------------
     print("\n" + "=" * 60)
-    print("PHASE 6: SUPERVECTOR EXTRACTION")
+    print("PHASE 6: SUPERVECTOR EXTRACTION (5s)")
     print("=" * 60)
     
-    sv_cache_dir = model_dir / "sv_cache_64_30s"
+    sv_cache_dir = model_dir / "sv_cache_64_5s"
     sv_cache_dir.mkdir(exist_ok=True)
     
-    train_sv_path = sv_cache_dir / "X_train_sv_30s.npy"
-    train_labels_path = sv_cache_dir / "y_train_30s.npy"
-    test_sv_path = sv_cache_dir / "X_test_sv_30s.npy"
-    test_labels_path = sv_cache_dir / "y_test_30s.npy"
+    train_sv_path = sv_cache_dir / "X_train_sv_5s.npy"
+    train_labels_path = sv_cache_dir / "y_train_5s.npy"
+    test_sv_path = sv_cache_dir / "X_test_sv_5s.npy"
+    test_labels_path = sv_cache_dir / "y_test_5s.npy"
     
     def extract_supervectors_for_dataset(feature_list, ubm_model):
-        """Extracts a MAP-adapted supervector for each utterance."""
         supervectors = []
         for i, features in enumerate(feature_list):
             sv = ubm_model.extract_supervector(features)
@@ -209,25 +172,23 @@ def main():
     y_test_idx = np.array([name_to_label[l] for l in y_test_str])
 
     if train_sv_path.exists() and test_sv_path.exists():
-        print("Loading cached supervectors from disk...")
+        print("Loading cached 5s supervectors from disk...")
         X_train_sv = np.load(train_sv_path)
         X_test_sv = np.load(test_sv_path)
-        scaler = joblib.load(model_dir / "ann_scaler_30s.pkl")
+        scaler = joblib.load(model_dir / "ann_scaler_5s.pkl")
         print(f"Loaded {X_train_sv.shape[0]} train and {X_test_sv.shape[0]} test supervectors.")
     else:
         print("Extracting Supervectors for Train set...")
         X_train_sv = extract_supervectors_for_dataset(X_train_list, ubm)
         
-        # Normalize the supervectors
         scaler = StandardScaler()
         X_train_sv = scaler.fit_transform(X_train_sv)
-        joblib.dump(scaler, model_dir / "ann_scaler_30s.pkl")
+        joblib.dump(scaler, model_dir / "ann_scaler_5s.pkl")
         
         print("Extracting Supervectors for Test set...")
         X_test_sv = extract_supervectors_for_dataset(X_test_list, ubm)
         X_test_sv = scaler.transform(X_test_sv)
         
-        # Cache to disk
         np.save(train_sv_path, X_train_sv)
         np.save(train_labels_path, y_train_idx)
         np.save(test_sv_path, X_test_sv)
@@ -235,20 +196,19 @@ def main():
         print("Supervectors cached to disk.")
     
     # ---------------------------------------------------------
-    # 5. PHASE 7: ANN CLASSIFIER
+    # 5. PHASE 7: ANN CLASSIFIER (5s)
     # ---------------------------------------------------------
     print("\n" + "=" * 60)
-    print("PHASE 7: ANN CLASSIFIER")
+    print("PHASE 7: ANN CLASSIFIER (5s)")
     print("=" * 60)
     
-    # Convert to PyTorch Tensors
     X_train_tensor = torch.FloatTensor(X_train_sv)
     y_train_tensor = torch.LongTensor(y_train_idx)
     
     train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
     train_loader = DataLoader(train_dataset, batch_size=config['ann']['batch_size'], shuffle=True)
     
-    ann_path = model_dir / "ann_model_30s.pt"
+    ann_path = model_dir / "ann_model_5s.pt"
     
     supervector_dim = X_train_sv.shape[1]
     print(f"Supervector Dimension: {supervector_dim}")
@@ -260,7 +220,7 @@ def main():
         dropout=config['ann']['dropout']
     )
     
-    print("Training PyTorch ANN...")
+    print("Training PyTorch ANN on 5s chunks...")
     ann_model = train_ann(
         model=ann_model, 
         train_loader=train_loader, 
@@ -270,23 +230,22 @@ def main():
     save_ann(ann_model, ann_path)
 
     # ---------------------------------------------------------
-    # 6. PHASE 8: EVALUATION
+    # 6. PHASE 8: EVALUATION (5s)
     # ---------------------------------------------------------
     print("\n" + "=" * 60)
-    print("PHASE 8: EVALUATION")
+    print("PHASE 8: EVALUATION (5s)")
     print("=" * 60)
     
     X_test_tensor = torch.FloatTensor(X_test_sv)
     
     print("Running inference on Test set...")
-    ann_model.eval() # Set to eval mode (disables dropout)
+    ann_model.eval()
     with torch.no_grad():
         outputs = ann_model(X_test_tensor)
         _, predictions = torch.max(outputs.data, 1)
         y_pred = predictions.numpy()
         
-    evaluate_model(y_test_idx, y_pred, label_to_name)
-
+    evaluate_model(y_test_idx, y_pred, label_to_name, results_dir=results_dir)
 
 if __name__ == "__main__":
     main()

@@ -120,7 +120,7 @@ def process_split(split, data_dir):
 
 def main():
     data_dir = "d:\\SLID_GMM_UBM\\data"
-    for split in ['train', 'test']:
+    for split in ['train', 'test', 'valid']:
         process_split(split, data_dir)
         
     print("\nStitching complete! All files in 'audio' are now exactly 30 seconds long.")

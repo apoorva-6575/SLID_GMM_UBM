@@ -52,17 +52,17 @@ data/*/audio/*
 !models/gmm_models/*.pkl
 
 # Results contents (keep directory structure)
-results/metrics/*
-!results/metrics/.gitkeep
-!results/metrics/*.txt
-results/plots/*
-!results/plots/.gitkeep
-!results/plots/*.png
-results/embeddings/*
-!results/embeddings/.gitkeep
-results/confusion_matrix/*
-!results/confusion_matrix/.gitkeep
-!results/confusion_matrix/*.png
+results*/metrics/*
+!results*/metrics/.gitkeep
+!results*/metrics/*.txt
+results*/plots/*
+!results*/plots/.gitkeep
+!results*/plots/*.png
+results*/embeddings/*
+!results*/embeddings/.gitkeep
+results*/confusion_matrix/*
+!results*/confusion_matrix/.gitkeep
+!results*/confusion_matrix/*.png
 
 # Logs
 *.log
