@@ -5,8 +5,10 @@ This script takes a raw audio file as input, processes it through the entire
 pipeline (MFCC -> UBM Supervector -> StandardScaler -> ANN), and outputs the predicted language.
 
 Usage:
-    python src/predict.py path/to/audio.wav
-"""
+    python src/predict.py path/to/audio.wav [length_mode]
+    
+Example:
+    python src/predict.py test.wav 5s
 
 import sys
 import os
@@ -25,7 +27,7 @@ from ann import LanguageANN, load_ann
 # Ensure PyTorch doesn't crash on Windows
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 
-def predict_language(audio_path):
+def predict_language(audio_path, length_mode="30s"):
     """Run inference on a single audio file."""
     audio_path = Path(audio_path)
     if not audio_path.exists():
@@ -47,24 +49,19 @@ def predict_language(audio_path):
         from preprocessing import preprocess_audio
         from mfcc import extract_features
         import librosa
-        import noisereduce as nr
         
         # Load and preprocess
         signal, sample_rate = preprocess_audio(audio_path)
         
-        # NOISE REDUCTION: Aggressively clean the audio to simulate dataset conditions
-        print("  (Applying spectral noise reduction to clean background noise)")
-        signal = nr.reduce_noise(y=signal, sr=sample_rate, prop_decrease=0.9)
-        
-        # ENFORCE 30 SECONDS (critical for supervector dimension/scaling matching)
-        target_len = 30 * sample_rate
+        # ENFORCE TARGET LENGTH (critical for supervector dimension/scaling matching)
+        target_len = int(float(length_mode.replace('s', '')) * sample_rate)
         if len(signal) < target_len:
             repeats = int(np.ceil(target_len / len(signal)))
             signal = np.tile(signal, repeats)[:target_len]
-            print("  (Audio was too short - repeated to match 30-second training length)")
+            print(f"  (Audio was too short - repeated to match {length_mode} training length)")
         elif len(signal) > target_len:
             signal = signal[:target_len]
-            print("  (Audio was too long - trimmed to match 30-second training length)")
+            print(f"  (Audio was too long - trimmed to match {length_mode} training length)")
             
         features = extract_features(signal, sample_rate)
     except Exception as e:
@@ -72,14 +69,14 @@ def predict_language(audio_path):
         sys.exit(1)
         
     # 3. Load Models
-    print("Loading models (UBM, Scaler, ANN)...")
+    print(f"Loading {length_mode} models (UBM, Scaler, ANN)...")
     
     # Load UBM
-    ubm_path = model_dir / "gmm_models" / "ubm_64_30s.pkl"
+    ubm_path = model_dir / "gmm_models" / f"ubm_64_{length_mode}.pkl"
     ubm = UBM.load(ubm_path)
     
     # Load Scaler
-    scaler_path = model_dir / "ann_scaler_30s.pkl"
+    scaler_path = model_dir / f"ann_scaler_{length_mode}.pkl"
     scaler = joblib.load(scaler_path)
     
     # 4. Generate Supervector
@@ -87,7 +84,7 @@ def predict_language(audio_path):
     supervector = ubm.extract_supervector(features)
     
     # Load PyTorch ANN dynamically based on supervector shape
-    ann_path = model_dir / "ann_model_30s.pt"
+    ann_path = model_dir / f"ann_model_{length_mode}.pt"
     ann_model = LanguageANN(
         input_dim=supervector.shape[0],
         num_classes=len(valid_langs),
@@ -125,8 +122,9 @@ def predict_language(audio_path):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python src/predict.py <path_to_wav_file>")
+        print("Usage: python src/predict.py <path_to_wav_file> [length_mode]")
         sys.exit(1)
         
     audio_file = sys.argv[1]
-    predict_language(audio_file)
+    mode = sys.argv[2] if len(sys.argv) > 2 else "30s"
+    predict_language(audio_file, mode)
