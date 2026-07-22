@@ -15,6 +15,7 @@ import numpy as np
 TARGET_SR = 16000
 TARGET_DURATION = 30.0
 TARGET_FRAMES = int(TARGET_SR * TARGET_DURATION)
+MAX_CLIPS = None  # Set to 1 if you want exactly 30s total, or 30 for thirty clips
 
 def read_metadata(csv_path):
     metadata = []
@@ -76,6 +77,9 @@ def process_split(split, data_dir):
         clip_counter = 0
         
         for idx, row in enumerate(rows):
+            if MAX_CLIPS is not None and clip_counter >= MAX_CLIPS:
+                break
+                
             orig_filepath = backup_dir / row['filepath']
             if not orig_filepath.exists():
                 continue
@@ -90,6 +94,9 @@ def process_split(split, data_dir):
                 buffer_frames += len(y)
                 
                 while buffer_frames >= TARGET_FRAMES:
+                    if MAX_CLIPS is not None and clip_counter >= MAX_CLIPS:
+                        break
+                        
                     concat_y = np.concatenate(buffer)
                     stitched_y = concat_y[:TARGET_FRAMES]
                     

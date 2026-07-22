@@ -31,8 +31,8 @@ def write_metadata(csv_path, metadata):
 def process_split(split, data_dir):
     print(f"\n--- Processing 5-second chunks for split: {split.upper()} ---")
     split_dir = Path(data_dir) / split
-    audio_30s_dir = split_dir / "audio"
-    meta_30s_path = split_dir / "metadata.csv"
+    audio_30s_dir = split_dir / "audio_30s"
+    meta_30s_path = split_dir / "metadata_30s.csv"
     
     audio_5s_dir = split_dir / "audio_5s"
     meta_5s_path = split_dir / "metadata_5s.csv"
