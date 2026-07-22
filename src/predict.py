@@ -9,6 +9,7 @@ Usage:
     
 Example:
     python src/predict.py test.wav 5s
+"""
 
 import sys
 import os
